@@ -1,40 +1,68 @@
 # 📸 SnapFlow — GitHub & Website Auto Screenshot + Page Sequence Flow
 
-Ei project-ti diye apni jekono **GitHub Repository Link**, **GitHub Pages Link**, othoba **Jekono Live Website-er URL** dile automatic puro website-er shob page scan kore **Full-Page Screenshot** nibe ebong **kontar por kon page ashe (Page Sequence Flow)** sheta step-by-step arrow সহ dekhabe!
+With this project, you can enter any **GitHub Repository Link, GitHub Pages Link, or Live Website URL** to automatically scan website pages, capture **full-page screenshots**, and visualize **which page comes before or after another page** using a step-by-step flow with directional arrows.
 
 ---
 
-## ✨ Key Features (Ki Ki Thakche)
+##  Key Features
 
-1. **GitHub Link & Any Website Link Support**:
-   - **Live Website / GitHub Pages / Vercel / Netlify Link** dile automatic internal link crawl kore shob page-er screenshot ney.
-   - **GitHub Repository Link** (`https://github.com/user/repo`) dile automatic:
-     - Repo-r live deployment link ba GitHub Pages khuje ber kore.
-     - Code tree scan kore (`index.html`, Next.js `pages/` ba `app/` routes) shob page-er list ber kore.
-     - Jodi repo-ti shudhu raw HTML/CSS/JS hoy (deploy kora na thake), taholeo automatic local preview server on kore protita HTML page-er screenshot tule dey!
-2. **Page Sequence Flow (`Kontar Por Kon Page`)**:
-   - Protita screenshot-er sathe **Step Number (`Step #01` -> `Step #02` -> `Step #03`)** thakbe.
-   - **Kon page theke kon link click kore ei page-e esheche** (`From Page`) ebong **ei page theke poroborti kon kon page-e jawa jay** (`Next Pages`) sheta clearly dekhabe.
-3. **3 Interactive Views**:
-   - **Step-by-Step Sequence Flow View** (with directional connectors)
-   - **Depth Level Architecture Map** (Level 0 Home -> Level 1 Main Pages -> Level 2 Sub-pages)
-   - **Compact Screenshot Grid Gallery** + Full-Screen Lightbox Zoom
-4. **One-Click Numbered ZIP Download**:
-   - Shob screenshot sequence onujayi rename hoye (`01_home.png`, `02_about.png`, ...) sathe `sequence-map.json` ebong `sequence-flow-report.html` shoho ekta `.zip` file hishebe download kora jabe.
+### 1. GitHub Links & Any Website URL Support
+
+- Enter a **Live Website, GitHub Pages, Vercel, or Netlify URL** to automatically crawl internal links and capture screenshots of discovered pages.
+- Enter a **GitHub Repository URL** (e.g., `https://github.com/user/repo`) to automatically:
+  - Search for the live deployment URL or GitHub Pages website.
+  - Scan the code tree and discover pages from `index.html`, Next.js `pages/`, or `app/` routes.
+  - If the repository contains only raw HTML, CSS, and JavaScript files without a deployment, attempt to start a local preview server and capture screenshots of individual HTML pages.
+
+### 2. Page Sequence Flow — See Which Page Comes Next
+
+- Each screenshot includes a **Step Number**, such as `Step #01 → Step #02 → Step #03`.
+- Clearly identify **which page a user came from** (`From Page`) and **which pages can be accessed next** (`Next Pages`).
+- Visualize the discovered navigation paths to understand the website's structure and page relationships.
+
+### 3. Three Interactive Views
+
+- **Step-by-Step Sequence Flow View:** Follow the page sequence using directional connectors and arrows.
+- **Depth-Level Architecture Map:** Explore the website hierarchy, from Level 0 (Home) to Level 1 (Main Pages) and Level 2 (Subpages).
+- **Compact Screenshot Grid Gallery:** Browse screenshots in a grid layout and open them in a full-screen lightbox for zooming.
+
+### 4. One-Click Numbered ZIP Download
+
+Download all screenshots in a single ZIP file, numbered according to their discovered sequence, for example:
+
+- `01_home.png`
+- `02_about.png`
+- `03_contact.png`
+
+The ZIP also includes:
+
+- `sequence-map.json`
+- `sequence-flow-report.html`
+
+This makes it easier to review, share, and document the captured website structure.
 
 ---
 
-## 🚀 VS Code-e Kivabe Run Korben (Step-by-Step)
+##  How to Run SnapFlow in VS Code
 
 ### Prerequisites
-- Apnar computer-e **Node.js** (v18 ba tar upore) install thakte hobe (`https://nodejs.org`).
 
-### Step 1: Folder Open Korun
-1. `website-screenshot-sequencer.zip` file-ti **Extract (Unzip)** korun.
-2. **VS Code** open kore extracted `website-screenshot-sequencer` folder-ti open korun (`File -> Open Folder`).
+Make sure **Node.js v18 or later** is installed on your computer.
 
-### Step 2: Terminal-e Command Run Korun
-VS Code-er terminal (`Ctrl + ~` ba `Terminal -> New Terminal`) open kore নিচের ৩টি কমান্ড দিন:
+Download it from: https://nodejs.org
+
+### Step 1: Open the Project Folder
+
+1. Extract the `website-screenshot-sequencer.zip` file.
+2. Open VS Code.
+3. Select **File → Open Folder**.
+4. Choose the extracted `website-screenshot-sequencer` folder.
+
+### Step 2: Run the Commands in the Terminal
+
+Open the VS Code terminal by pressing `Ctrl + ~` or selecting **Terminal → New Terminal**.
+
+Run these three commands one by one:
 
 ```bash
 npm install
@@ -42,10 +70,20 @@ npx playwright install chromium
 npm start
 ```
 
-*(অথবা Windows ব্যবহার করলে সরাসরি ফোল্ডারের ভেতরে থাকা **`start.bat`** ফাইলে ডাবল-ক্লিক করলেই সব অটোমেটিক ইনস্টল হয়ে ব্রাউজারে ওপেন হয়ে যাবে!)*
+**Alternative for Windows:** Double-click the `start.bat` file inside the project folder to start the setup and launch process automatically, if the script is configured to do so.
 
-### Step 3: Browser-e Use Korun
-Terminal-e মেসেজ আসলে আপনার ব্রাউজারে যান:
-👉 **http://localhost:3000**
+### Step 3: Open the Application in Your Browser
 
-সেখানে যেকোনো GitHub লিংক বা Website লিংক বসিয়ে **"Capture All Pages & Sequence"** বাটনে ক্লিক করলেই কাজ শুরু হয়ে যাবে!
+Once the application starts, open:
+
+**http://localhost:3000**
+
+Enter any supported GitHub repository link or website URL, then click **“Capture All Pages & Sequence”** to begin scanning the website and capturing screenshots.
+
+---
+
+##  Project Goal
+
+SnapFlow aims to simplify website documentation by combining automated page discovery, full-page screenshots, numbered page sequences, navigation-flow visualization, and one-click ZIP export in a single workflow.
+
+**Important:** Page discovery depends on the website's accessibility, routing, and navigation structure. Private pages, authentication-protected content, dynamically generated routes, and unavailable deployments may require additional configuration. Repository scanning and automatic local previews also depend on the project's framework and setup.
