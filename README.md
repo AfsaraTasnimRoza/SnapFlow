@@ -2,7 +2,7 @@
 
 With this project, you can enter any **GitHub Repository Link, GitHub Pages Link, or Live Website URL** to automatically scan website pages, capture **full-page screenshots**, and visualize **which page comes before or after another page** using a step-by-step flow with directional arrows.
 
----
+
 
 ##  Key Features
 
@@ -41,7 +41,7 @@ The ZIP also includes:
 
 This makes it easier to review, share, and document the captured website structure.
 
----
+
 
 ##  How to Run SnapFlow in VS Code
 
@@ -80,7 +80,7 @@ Once the application starts, open:
 
 Enter any supported GitHub repository link or website URL, then click **“Capture All Pages & Sequence”** to begin scanning the website and capturing screenshots.
 
----
+
 
 ##  Project Goal
 
