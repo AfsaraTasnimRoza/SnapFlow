@@ -1,0 +1,28 @@
+{
+  "name": "website-screenshot-sequencer",
+  "version": "1.0.0",
+  "description": "Automatic Website & GitHub Repo Multi-Page Screenshot & Page Sequence Flow Analyzer",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "setup": "npm install && npx playwright install chromium",
+    "postinstall": "npx playwright install chromium"
+  },
+  "keywords": [
+    "github",
+    "website-crawler",
+    "screenshot",
+    "page-sequence",
+    "playwright",
+    "sitemap-flow"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "archiver": "^7.0.1",
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "playwright": "^1.48.0"
+  }
+}

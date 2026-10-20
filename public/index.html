@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SnapFlow — GitHub & Website Auto Screenshot Sequencer</title>
+  <!-- FontAwesome CDN Link added to fix icon rendering issues -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <!-- Top Header -->
+  <header class="navbar">
+    <div class="container nav-inner">
+      <div class="brand">
+        <div class="logo-icon">📸</div>
+        <div>
+          <h1>SnapFlow <span class="badge-accent">Auto Sequencer</span></h1>
+          <p class="subtitle">GitHub Link ba Website URL dilei shob page-er Screenshot + Page Sequence Flow</p>
+        </div>
+      </div>
+      <div class="nav-actions">
+        <button id="demoBtn" class="btn btn-secondary" title="Load an instant interactive sample sequence">
+          ✨ Load Instant Demo
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="container main-content">
+    <!-- Control Card: URL / GitHub Link Input -->
+    <section class="control-panel card">
+      <form id="crawlForm">
+        <label for="inputUrl" class="input-label">
+          🔗 Enter GitHub Repository Link, GitHub Pages Link, or Any Website URL
+        </label>
+        <div class="url-input-row">
+          <input
+            type="text"
+            id="inputUrl"
+            placeholder="e.g. https://github.com/username/project-repo  OR  https://example.com"
+            required
+          />
+          <button type="submit" id="startBtn" class="btn btn-primary">
+            🚀 Capture All Pages & Sequence
+          </button>
+        </div>
+
+        <!-- Quick Presets -->
+        <div class="quick-presets">
+          <span>Quick Test Links:</span>
+          <button type="button" class="chip" data-url="https://books.toscrape.com">📚 Books Store Demo</button>
+          <button type="button" class="chip" data-url="https://quotes.toscrape.com">💬 Quotes Multi-Page</button>
+          <button type="button" class="chip" data-url="https://github.com/octocat/Spoon-Knife">🐙 GitHub Repo Example</button>
+        </div>
+
+        <!-- Options Bar -->
+        <div class="options-grid">
+          <div class="option-item">
+            <label for="maxPages">Max Pages in Sequence</label>
+            <select id="maxPages">
+              <option value="5">Up to 5 Pages (Fast)</option>
+              <option value="10" selected>Up to 10 Pages (Recommended)</option>
+              <option value="20">Up to 20 Pages</option>
+              <option value="35">Up to 35 Pages</option>
+              <option value="50">Up to 50 Pages (Deep Crawl)</option>
+            </select>
+          </div>
+
+          <div class="option-item">
+            <label for="viewport">Screen Size (Viewport)</label>
+            <select id="viewport">
+              <option value="desktop" selected>🖥️ Desktop (1440 × 900)</option>
+              <option value="laptop">💻 Laptop (1280 × 800)</option>
+              <option value="tablet">📱 Tablet (768 × 1024)</option>
+              <option value="mobile">📲 Mobile (390 × 844)</option>
+            </select>
+          </div>
+
+          <div class="option-item checkbox-item">
+            <label class="toggle-label">
+              <input type="checkbox" id="fullPage" checked />
+              <span>Capture Full Scrollable Page Screenshot</span>
+            </label>
+          </div>
+        </div>
+      </form>
+    </section>
+
+    <!-- Live Status & Progress Section -->
+    <section id="statusSection" class="status-panel card hidden">
+      <div class="status-header">
+        <div class="status-title-group">
+          <span id="statusSpinner" class="spinner"></span>
+          <h2 id="statusHeading">Scanning & Capturing Pages...</h2>
+        </div>
+        <span id="pageCountBadge" class="count-pill">0 pages captured</span>
+      </div>
+      <p id="currentActionText" class="current-action">Initializing browser...</p>
+
+      <div id="githubInfoBanner" class="github-banner hidden"></div>
+
+      <details class="logs-drawer">
+        <summary>View Live Crawler Activity Logs</summary>
+        <pre id="logsBox" class="logs-box"></pre>
+      </details>
+    </section>
+
+    <!-- Results Toolbar & View Switcher -->
+    <section id="resultsSection" class="results-section hidden">
+      <div class="results-toolbar card">
+        <div class="view-tabs">
+          <button type="button" class="tab-btn active" data-view="sequence">
+            🔢 Step-by-Step Sequence Flow (Kontar Por Kon Page)
+          </button>
+          <button type="button" class="tab-btn" data-view="tree">
+            🌿 Depth Level Architecture Map
+          </button>
+          <button type="button" class="tab-btn" data-view="grid">
+            🖼️ Compact Screenshot Grid
+          </button>
+        </div>
+
+        <div class="export-actions">
+          <a id="downloadZipBtn" href="#" class="btn btn-success">
+            📦 Download Numbered ZIP + Report
+          </a>
+        </div>
+      </div>
+
+      <!-- Summary Pipeline Bar (Horizontal Mini Flow) -->
+      <div class="pipeline-strip card">
+        <div class="pipeline-title">🗺️ Page Navigation Sequence Overview (Click any step to jump):</div>
+        <div id="pipelineContainer" class="pipeline-nodes"></div>
+      </div>
+
+      <!-- VIEW 1: Step-by-Step Sequence Flow -->
+      <div id="view-sequence" class="view-container"></div>
+
+      <!-- VIEW 2: Depth Level Tree Map -->
+      <div id="view-tree" class="view-container hidden"></div>
+
+      <!-- VIEW 3: Compact Grid Gallery -->
+      <div id="view-grid" class="view-container hidden"></div>
+    </section>
+  </main>
+
+  <!-- Lightbox Modal for Full-Screen Screenshot Inspection -->
+  <div id="lightboxModal" class="modal hidden">
+    <div class="modal-backdrop" id="modalBackdrop"></div>
+    <div class="modal-content">
+      <div class="modal-header">
+        <div>
+          <span id="modalStepBadge" class="step-badge">Step #1</span>
+          <strong id="modalTitle">Page Title</strong>
+          <a id="modalUrl" href="#" target="_blank" class="modal-link"></a>
+        </div>
+        <button id="closeModalBtn" class="btn-close">✕</button>
+      </div>
+      <div class="modal-flow-meta" id="modalFlowMeta"></div>
+      <div class="modal-body">
+        <img id="modalImage" src="" alt="Full Page Screenshot" />
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
