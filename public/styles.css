@@ -194,6 +194,8 @@ body {
   color: var(--text-secondary);
 }
 
+.login-note { margin-top: 12px; color: var(--text-secondary); font-size: 13px; }
+
 .chip {
   background: #1e293b;
   color: #cbd5e1;

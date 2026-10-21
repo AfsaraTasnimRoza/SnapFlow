@@ -3,6 +3,7 @@ const inputUrlEl = document.getElementById('inputUrl');
 const maxPagesEl = document.getElementById('maxPages');
 const viewportEl = document.getElementById('viewport');
 const fullPageEl = document.getElementById('fullPage');
+const exploreControlsEl = document.getElementById('exploreControls');
 const startBtn = document.getElementById('startBtn');
 const demoBtn = document.getElementById('demoBtn');
 
@@ -75,7 +76,8 @@ crawlForm.addEventListener('submit', async (e) => {
         inputUrl,
         maxPages: Number(maxPagesEl.value),
         viewport: viewportEl.value,
-        fullPage: fullPageEl.checked
+        fullPage: fullPageEl.checked,
+        exploreControls: exploreControlsEl.checked
       })
     });
 
@@ -85,8 +87,7 @@ crawlForm.addEventListener('submit', async (e) => {
     }
 
     const jobId = data.jobId;
-    downloadZipBtn.href = `/api/download/${jobId}`;
-    downloadZipBtn.classList.remove('hidden');
+    downloadZipBtn.classList.add('hidden');
 
     pollJobStatus(jobId);
     pollInterval = setInterval(() => pollJobStatus(jobId), 1500);
@@ -132,6 +133,11 @@ async function pollJobStatus(jobId) {
         job.status === 'completed'
           ? `✅ Completed! ${job.pages.length} Pages Sequenced`
           : '❌ Capture Stopped with Error';
+      if (job.status === 'completed' && job.pages.length > 0) {
+        downloadZipBtn.href = `/api/download/${jobId}`;
+        downloadZipBtn.classList.remove('hidden');
+      }
+      if (job.status === 'failed' && job.error) currentActionText.textContent = job.error;
       startBtn.disabled = false;
       startBtn.textContent = '🚀 Capture All Pages & Sequence';
     }

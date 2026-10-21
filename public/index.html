@@ -46,6 +46,8 @@
           </button>
         </div>
 
+        <p class="login-note">For the approved Git project, SnapFlow can use its local sign-in config on that project's exact host. Other websites require sign-in in the visible Chromium window. Complete CAPTCHA/MFA yourself.</p>
+
         <!-- Quick Presets -->
         <div class="quick-presets">
           <span>Quick Test Links:</span>
@@ -83,6 +85,12 @@
               <span>Capture Full Scrollable Page Screenshot</span>
             </label>
           </div>
+          <div class="option-item checkbox-item">
+            <label class="toggle-label">
+              <input type="checkbox" id="exploreControls" checked />
+              <span>Capture safe button states (menus, tabs, dialogs)</span>
+            </label>
+          </div>
         </div>
       </form>
     </section>
@@ -97,6 +105,7 @@
         <span id="pageCountBadge" class="count-pill">0 pages captured</span>
       </div>
       <p id="currentActionText" class="current-action">Initializing browser...</p>
+      <p class="current-action">Default sign-in is limited to the approved Git project host. Other sites require manual sign-in; complete CAPTCHA/MFA yourself. Credentials are excluded from logs and ZIPs.</p>
 
       <div id="githubInfoBanner" class="github-banner hidden"></div>
 

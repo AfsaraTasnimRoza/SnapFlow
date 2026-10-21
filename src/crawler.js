@@ -43,6 +43,8 @@ async function crawlAndScreenshot({
   maxPages,
   viewport,
   fullPage,
+  exploreControls = true,
+  defaultLogin = {},
   jobDir
 }) {
   const jobState = {
@@ -56,6 +58,7 @@ async function crawlAndScreenshot({
     maxPages,
     viewport,
     fullPage,
+    exploreControls,
     currentAction: 'Initializing...',
     logs: [],
     pages: [], // Array of captured page objects in sequence order
@@ -84,9 +87,51 @@ async function crawlAndScreenshot({
     const baseUrlObj = new URL(resolved.targetUrl);
     const baseOrigin = baseUrlObj.origin;
     const basePathPrefix = baseUrlObj.pathname.replace(/\/$/, '');
+    const approvedLoginHost = String(defaultLogin.host || '').trim().toLowerCase();
+    const canUseDefaultLogin = Boolean(
+      resolved.githubInfo &&
+      approvedLoginHost &&
+      baseUrlObj.hostname.toLowerCase() === approvedLoginHost &&
+      defaultLogin.email &&
+      defaultLogin.password
+    );
+    if (canUseDefaultLogin) addLog(`🔐 Default sign-in is enabled for this Git project on ${approvedLoginHost} only.`);
 
-    addLog(`🚀 Launching headless Chromium browser (${viewport} viewport)...`);
-    browser = await chromium.launch({ headless: true });
+    const finishSignIn = async (targetPage) => {
+      const passwordInput = targetPage.locator('input[type="password"]').first();
+      if (!(await passwordInput.count()) || !(await passwordInput.isVisible().catch(() => false))) return true;
+
+      const currentHost = new URL(targetPage.url()).hostname.toLowerCase();
+      const canSubmitDefault = canUseDefaultLogin && currentHost === approvedLoginHost;
+      if (canSubmitDefault) {
+        const emailInput = targetPage.locator('input[type="email"], input[autocomplete="username"], input[name*="email" i], input[name*="user" i]').first();
+        if (await emailInput.count() && await passwordInput.count()) {
+          addLog('Filling the locally configured Git-project sign-in on the approved host.');
+          await emailInput.fill(defaultLogin.email);
+          await passwordInput.fill(defaultLogin.password);
+          const submit = targetPage.locator('button[type="submit"], input[type="submit"], button:has-text("Sign in"), button:has-text("Log in"), button:has-text("Login")').first();
+          if (await submit.count()) await submit.click({ timeout: 5000 }).catch(() => {});
+          else await passwordInput.press('Enter').catch(() => {});
+        } else {
+          addLog('No recognizable email/password form found. Complete sign-in manually in Chromium.');
+        }
+      } else {
+        addLog('Sign-in required. Credentials are not sent to this URL. Complete sign-in (and any CAPTCHA/MFA) in Chromium.');
+      }
+
+      addLog('Waiting up to 5 minutes for sign-in to finish...');
+      try {
+        await targetPage.waitForFunction(() => !Array.from(document.querySelectorAll('input[type="password"]')).some((el) => el.getClientRects().length), null, { timeout: 5 * 60 * 1000 });
+        addLog('Sign-in form is no longer visible; continuing capture.');
+        return true;
+      } catch {
+        addLog('Sign-in was not completed before timeout; skipping this page/state.');
+        return false;
+      }
+    };
+
+    addLog(`🚀 Launching visible Chromium browser (${viewport} viewport)...`);
+    browser = await chromium.launch({ headless: false });
 
     const vpSize = VIEWPORT_PRESETS[viewport] || VIEWPORT_PRESETS.desktop;
     const context = await browser.newContext({
@@ -102,6 +147,7 @@ async function crawlAndScreenshot({
     const queue = [];
     const visited = new Set();
     const urlToStepMap = new Map();
+    const renderedPageFingerprints = new Set();
 
     // Enqueue main entry URL
     const entryNormalized = normalizeUrlForKey(resolved.targetUrl, baseOrigin);
@@ -165,6 +211,16 @@ async function crawlAndScreenshot({
         }
         await page.waitForTimeout(600);
 
+        if (!(await finishSignIn(page))) continue;
+
+        const renderedText = await page.locator('body').innerText().catch(() => '');
+        const renderFingerprint = renderedText.replace(/\s+/g, ' ').trim();
+        if (renderFingerprint && renderedPageFingerprints.has(renderFingerprint)) {
+          addLog(`⏭ Skipping duplicate-rendered route ${displayPath}; its page content was already captured.`);
+          continue;
+        }
+        if (renderFingerprint) renderedPageFingerprints.add(renderFingerprint);
+
         const pageTitle = (await page.title()) || displayPath || 'Untitled Page';
 
         // Extract internal links on this page to build the sequence flow
@@ -175,6 +231,11 @@ async function crawlAndScreenshot({
             text: (a.innerText || a.getAttribute('aria-label') || a.getAttribute('title') || '').trim().slice(0, 60)
           }));
         });
+
+        const controls = exploreControls ? await page.evaluate(() => Array.from(document.querySelectorAll('button, [role="button"], [role="tab"]'))
+          .map((el, index) => ({ index, label: (el.innerText || el.getAttribute('aria-label') || el.getAttribute('title') || el.value || '').trim().slice(0, 80), disabled: el.disabled || el.getAttribute('aria-disabled') === 'true', type: (el.getAttribute('type') || '').toLowerCase() }))
+          .filter((el) => !el.disabled && el.type !== 'submit' && el.label && !/\b(delete|remove|purchase|checkout|pay|confirm|send|submit|save|create|register|sign\s?in|log\s?in|log\s?out|add\s+to\s+cart|place\s+order|buy\s+now|wishlist|favorite)\b/i.test(el.label))
+          .slice(0, 50)) : [];
 
         const slug = sanitizeSlug(currentUrlObj.pathname);
         const fileName = `${String(currentStep).padStart(2, '0')}_${slug}.png`;
@@ -204,6 +265,53 @@ async function crawlAndScreenshot({
           outgoingInternalUrls: [],
           capturedAt: new Date().toISOString()
         };
+
+        pageRecord.controls = controls.map(({ label, index }) => ({ label, index, screenshotFile: null, result: 'listed' }));
+        for (const control of controls) {
+          try {
+            const probe = await context.newPage();
+            await probe.goto(currentItem.url, { waitUntil: 'domcontentloaded', timeout: 25000 });
+            try { await probe.waitForLoadState('networkidle', { timeout: 3000 }); } catch {}
+            await probe.waitForTimeout(700);
+            const button = probe.locator('button, [role="button"], [role="tab"]').nth(control.index);
+            if (!(await button.count()) || !(await button.isVisible())) {
+              const controlRecord = pageRecord.controls.find((item) => item.index === control.index);
+              if (controlRecord) controlRecord.result = 'not available';
+              await probe.close();
+              continue;
+            }
+            await button.click({ timeout: 2500 });
+            await probe.waitForTimeout(350);
+            if (!(await finishSignIn(probe))) {
+              const controlRecord = pageRecord.controls.find((item) => item.index === control.index);
+              if (controlRecord) controlRecord.result = 'sign-in not completed';
+              await probe.close();
+              continue;
+            }
+            const after = new URL(probe.url());
+            if (after.origin !== baseOrigin) {
+              const controlRecord = pageRecord.controls.find((item) => item.index === control.index);
+              if (controlRecord) controlRecord.result = 'external navigation skipped';
+              await probe.close();
+              continue;
+            }
+            const stateFile = `${String(currentStep).padStart(2, '0')}_${slug}_control-${String(control.index + 1).padStart(2, '0')}.png`;
+            const statePath = path.join(jobDir, stateFile);
+            await probe.screenshot({ path: statePath, fullPage });
+            const controlRecord = pageRecord.controls.find((item) => item.index === control.index);
+            if (controlRecord) {
+              controlRecord.result = 'captured';
+              controlRecord.screenshotFile = stateFile;
+              controlRecord.resultUrl = probe.url();
+              controlRecord.dialog = await probe.locator('[role="dialog"], dialog[open]').first().count().then((n) => n > 0);
+              controlRecord.localFilePath = statePath;
+            }
+            await probe.close();
+          } catch (controlErr) {
+            const controlRecord = pageRecord.controls.find((item) => item.index === control.index);
+            if (controlRecord) controlRecord.result = `skipped: ${controlErr.message}`;
+          }
+        }
 
         // Link back to parent's childrenSteps
         if (currentItem.parentStep) {
@@ -257,13 +365,21 @@ async function crawlAndScreenshot({
       }
     }
 
-    jobState.status = 'completed';
     jobState.completedAt = new Date().toISOString();
-    addLog(`🎉 Completed! Captured ${jobState.pages.length} page(s) in sequence.`);
+    if (jobState.pages.length === 0) {
+      jobState.status = 'failed';
+      jobState.error = 'No screenshots were captured. The crawler could not access the target website; check network access and try again.';
+      addLog(`❌ ${jobState.error}`);
+    } else {
+      jobState.status = 'completed';
+      addLog(`🎉 Completed! Captured ${jobState.pages.length} page(s) in sequence.`);
+    }
   } catch (err) {
     console.error('Crawl job failed:', err);
     jobState.status = 'failed';
-    jobState.error = err.message || 'Unknown error occurred during crawling.';
+    jobState.error = /ERR_NETWORK_ACCESS_DENIED|net::ERR_BLOCKED_BY_CLIENT/i.test(err.message || '')
+      ? 'Chromium could not reach the target site because network access is blocked for the crawler process. Open the site in your regular browser to confirm it is reachable, then allow network access for the SnapFlow Chromium process and retry.'
+      : err.message || 'Unknown error occurred during crawling.';
     addLog(`❌ Error: ${jobState.error}`);
   } finally {
     if (browser) {

@@ -6,6 +6,17 @@ const archiver = require('archiver');
 const { crawlAndScreenshot, getJobStatus, getAllJobs } = require('./src/crawler');
 const { resolveGitHubTarget, cleanupTempServer } = require('./src/githubHelper');
 
+// Read optional local-only configuration without adding a dotenv dependency.
+const localEnvPath = path.join(__dirname, '.env');
+if (fs.existsSync(localEnvPath)) {
+  for (const line of fs.readFileSync(localEnvPath, 'utf8').split(/\r?\n/)) {
+    const match = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*?)\s*$/);
+    if (match && process.env[match[1]] === undefined) {
+      process.env[match[1]] = match[2].replace(/^(['"])(.*)\1$/, '$2');
+    }
+  }
+}
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -27,7 +38,8 @@ app.post('/api/start', async (req, res) => {
       inputUrl,
       maxPages = 15,
       viewport = 'desktop',
-      fullPage = true
+      fullPage = true,
+      exploreControls = true
     } = req.body;
 
     if (!inputUrl || !inputUrl.trim()) {
@@ -45,6 +57,12 @@ app.post('/api/start', async (req, res) => {
       maxPages: Math.min(Math.max(parseInt(maxPages, 10) || 15, 1), 100),
       viewport,
       fullPage: Boolean(fullPage),
+      exploreControls: Boolean(exploreControls),
+      defaultLogin: {
+        host: process.env.SNAPFLOW_DEFAULT_LOGIN_HOST || '',
+        email: process.env.SNAPFLOW_DEFAULT_LOGIN_EMAIL || '',
+        password: process.env.SNAPFLOW_DEFAULT_LOGIN_PASSWORD || ''
+      },
       jobDir
     });
 
@@ -64,7 +82,14 @@ app.get('/api/status/:jobId', (req, res) => {
   if (!job) {
     return res.status(404).json({ error: 'Job not found' });
   }
-  return res.json(job);
+  const publicJob = {
+    ...job,
+    pages: job.pages.map(({ localFilePath, controls, ...page }) => ({
+      ...page,
+      controls: (controls || []).map(({ localFilePath: _localFilePath, ...control }) => control)
+    }))
+  };
+  return res.json(publicJob);
 });
 
 // Get recent jobs history
@@ -77,6 +102,9 @@ app.get('/api/download/:jobId', (req, res) => {
   const job = getJobStatus(req.params.jobId);
   if (!job) {
     return res.status(404).json({ error: 'Job not found' });
+  }
+  if (job.status !== 'completed' || job.pages.length === 0) {
+    return res.status(409).json({ error: 'This job has no completed screenshots to export.' });
   }
 
   const zipFilename = `screenshots_sequence_${req.params.jobId}.zip`;
@@ -96,6 +124,11 @@ app.get('/api/download/:jobId', (req, res) => {
     if (p.localFilePath && fs.existsSync(p.localFilePath)) {
       archive.file(p.localFilePath, { name: `screenshots/${p.fileName}` });
     }
+    (p.controls || []).forEach((control) => {
+      if (control.localFilePath && fs.existsSync(control.localFilePath)) {
+        archive.file(control.localFilePath, { name: `screenshots/${control.screenshotFile}` });
+      }
+    });
   });
 
   // Add sequence metadata JSON
@@ -115,10 +148,19 @@ app.get('/api/download/:jobId', (req, res) => {
       parentUrl: p.parentUrl,
       viaLinkText: p.viaLinkText,
       nextSteps: p.childrenSteps,
-      screenshotFile: `screenshots/${p.fileName}`
+      screenshotFile: `screenshots/${p.fileName}`,
+      controls: (p.controls || []).map(({ label, result, screenshotFile, resultUrl, dialog }) => ({ label, result, screenshotFile: screenshotFile ? `screenshots/${screenshotFile}` : null, resultUrl: resultUrl || null, dialog: Boolean(dialog) }))
     }))
   };
   archive.append(JSON.stringify(sequenceSummary, null, 2), { name: 'sequence-map.json' });
+  archive.append(JSON.stringify({
+    generatedAt: new Date().toISOString(),
+    source: job.rawInputUrl,
+    resolvedBaseUrl: job.resolvedBaseUrl,
+    status: job.status,
+    pages: sequenceSummary.sequence,
+    limitations: ['Up to 50 visible, labeled, non-submit buttons are clicked per page. Purchase, account, delete, save, and other risky labeled actions are skipped.', 'Default sign-in is limited to the configured host for GitHub repository input. CAPTCHA/MFA must be completed manually. No passwords, email credentials, or browser session data are collected or exported.']
+  }, null, 2), { name: 'info/capture-manifest.json' });
 
   // Add standalone HTML visual sequence report inside the ZIP
   const htmlReport = generateStandaloneHtmlReport(job);
@@ -193,7 +235,7 @@ function escapeHtml(str) {
     .replace(/"/g, '&quot;');
 }
 
-app.listen(PORT, () => {
+app.listen(PORT, '127.0.0.1', () => {
   console.log('==========================================================');
   console.log('🚀 Website & GitHub Screenshot Sequencer is running!');
   console.log(`👉 Open in your browser: http://localhost:${PORT}`);

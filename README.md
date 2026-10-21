@@ -26,7 +26,11 @@ With this project, you can enter any **GitHub Repository Link, GitHub Pages Link
 - **Depth-Level Architecture Map:** Explore the website hierarchy, from Level 0 (Home) to Level 1 (Main Pages) and Level 2 (Subpages).
 - **Compact Screenshot Grid Gallery:** Browse screenshots in a grid layout and open them in a full-screen lightbox for zooming.
 
-### 4. One-Click Numbered ZIP Download
+### 4. Button-State Screenshots
+
+SnapFlow opens a fresh copy of each page and clicks up to 50 visible, labeled, non-submit buttons or tabs, saving a screenshot after each interaction. It skips form submissions and labels that indicate account, purchase, delete, or other risky actions. The ZIP manifest lists each control and its capture result.
+
+### 5. One-Click Numbered ZIP Download
 
 Download all screenshots in a single ZIP file, numbered according to their discovered sequence, for example:
 
@@ -40,6 +44,12 @@ The ZIP also includes:
 - `sequence-flow-report.html`
 
 This makes it easier to review, share, and document the captured website structure.
+
+### Sign-In for Authorized Testing
+
+SnapFlow opens a visible Chromium window. Other sites require manual sign-in in that window; CAPTCHA and MFA must also be completed by you. SnapFlow does not expose credentials through job status, logs, screenshots metadata, or ZIP exports.
+
+For the approved Carewell Git project only, default sign-in is configured locally in `.env`. Auto-submit is limited to the exact host in `SNAPFLOW_DEFAULT_LOGIN_HOST`, and is enabled only when the input is a GitHub repository. Direct website URLs and all other hosts use manual sign-in. `.env` is ignored by Git and excluded from screenshots and ZIPs. Complete CAPTCHA/MFA manually.
 
 
 
